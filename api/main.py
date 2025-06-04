@@ -14,48 +14,34 @@ import torch
 from .model_utils import load_model, preprocess_image
 from .face_utils import detect_and_crop_face
 
-# Initialize FastAPI app
+# 🚀 FastAPI app init
 app = FastAPI()
 
-# ✅ Allow all origins for now (Render deployment)
-# Optional: restrict to frontend domain if known
+# 🌐 CORS setup - allow all origins for now (adjust in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or use exact domains: ["https://your-frontend.onrender.com"]
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["POST"],
     allow_headers=["Content-Type"],
 )
 
-# Load model and device once at startup
+# ✅ Load model and device at startup
 model, device = load_model()
 
-# Request body schema
+# 📷 Request schema for base64-encoded image
 class ImagePayload(BaseModel):
-    image_base64: str  # base64-encoded image string
+    image_base64: str
 
+# 🎯 POST endpoint for age prediction
 @app.post("/predict")
 def predict_base64(payload: ImagePayload):
-    """
-    Accepts a base64-encoded image, detects the face,
-    and returns the predicted age as JSON.
-
-    Example Request:
-        {
-            "image_base64": "<base64 string>"
-        }
-
-    Response:
-        {
-            "predicted_age": 25
-        }
-    """
     try:
-        # Decode base64 and convert to PIL
+        # Decode and convert to PIL
         image_data = base64.b64decode(payload.image_base64)
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
 
-        # Crop face
+        # Detect face and crop
         face_image = detect_and_crop_face(image)
 
         # Preprocess and predict
@@ -69,5 +55,8 @@ def predict_base64(payload: ImagePayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# Run via: uvicorn api.main:app --reload
+# 🧠 Render requires dynamic port binding
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))  # Render assigns this automatically
+    uvicorn.run("api.main:app", host="0.0.0.0", port=port)
