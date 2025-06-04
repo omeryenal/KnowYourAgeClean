@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 import torchvision.transforms as transforms
+import torchvision.models as models  # ✅ EKLENDİ
 from PIL import Image
 import numpy as np
 import random
@@ -34,41 +35,27 @@ np.random.seed(SEED)
 random.seed(SEED)
 
 BATCH_SIZE = 32
-EPOCHS = 20           # Usually 3–5 epochs of fine-tuning is enough
+EPOCHS = 20
 LR = 1e-4
 WEIGHT_DECAY = 1e-5
-PATIENCE = 5          # Patience value for ReduceLROnPlateau
+PATIENCE = 5
 
-# Age range is 0–100 → num_bins = 101
 NUM_BINS = 101
 
-# Dataset and checkpoint paths
 DATA_DIR = os.path.join(project_root, "data", "UTKFace")
 CHECKPOINT_DIR = os.path.join(project_root, "checkpoints")
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 BEST_MODEL_PATH = os.path.join(CHECKPOINT_DIR, "dex_utkface.pt")
 
 
-# ------------------------ DEX Age Model (VGG-16 Based) ------------------------
+# ------------------------ DEX Age Model ------------------------
 class DEXAgeModel(nn.Module):
-    """
-    DEX VGG-16-based model:
-    - VGG-16 backbone (pretrained on ImageNet or DEX)
-    - Final layer outputs age distribution (101 classes: 0–100)
-    - Age prediction via expectation over softmax
-    """
-
     def __init__(self, num_bins=NUM_BINS, pretrained_dex=False):
         super(DEXAgeModel, self).__init__()
 
-        # 1) Load pretrained VGG-16
-        self.backbone = torch.hub.load(
-            'pytorch/vision:v0.15.2',
-            'vgg16',
-            pretrained=True
-        )
+        # ✅ torch.hub yerine doğrudan torchvision.models kullanılıyor
+        self.backbone = models.vgg16(pretrained=True)
 
-        # 2) Modify the classifier to output num_bins
         self.backbone.classifier = nn.Sequential(
             nn.Linear(in_features=25088, out_features=4096),
             nn.ReLU(inplace=True),
@@ -79,7 +66,6 @@ class DEXAgeModel(nn.Module):
             nn.Linear(in_features=4096, out_features=num_bins)
         )
 
-        # Optionally load pretrained DEX weights
         if pretrained_dex:
             if not os.path.exists(DEX_PRETRAINED_PATH):
                 raise FileNotFoundError(f"DEX pretrained weights not found: {DEX_PRETRAINED_PATH}")
@@ -88,12 +74,6 @@ class DEXAgeModel(nn.Module):
             print(f"[DEX] Pretrained DEX weights loaded → {DEX_PRETRAINED_PATH}")
 
     def forward(self, x):
-        """
-        x: [B, 3, 224, 224]
-        → backbone(x)  → [B, num_bins] logits
-        → softmax → [B, num_bins] probabilities
-        → expectation = sum_i p_i * i → [B] (age prediction [0–100])
-        """
         logits = self.backbone(x)
         probs = torch.softmax(logits, dim=1)
         idxs = torch.arange(0, logits.size(1), device=logits.device, dtype=torch.float32)
@@ -103,10 +83,6 @@ class DEXAgeModel(nn.Module):
 
 # ------------------------ Dataset & Dataloader ------------------------
 def create_dataloaders(batch_size=BATCH_SIZE):
-    """
-    Loads CleanUTKFaceDataset, splits into 80% train / 20% val,
-    and returns DataLoaders for both.
-    """
     dataset = UTKFaceDataset(root_dir=DATA_DIR, transform=None)
 
     train_size = int(0.8 * len(dataset))
@@ -163,7 +139,6 @@ def train_dex():
 
     best_mae = float("inf")
     for epoch in range(EPOCHS):
-        # Training Phase
         model.train()
         running_loss = 0.0
         for images, ages_norm in train_loader:
@@ -179,7 +154,6 @@ def train_dex():
 
         avg_train_loss = running_loss / len(train_loader.dataset)
 
-        # Validation Phase
         model.eval()
         running_val_loss = 0.0
         running_val_mae = 0.0
@@ -205,7 +179,6 @@ def train_dex():
             f"Val MAE = {avg_val_mae:.2f} years"
         )
 
-        # Save best model
         if avg_val_mae < best_mae:
             best_mae = avg_val_mae
             torch.save(model.state_dict(), BEST_MODEL_PATH)
