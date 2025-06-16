@@ -2,20 +2,20 @@
 torch==2.7.0
 torchvision==0.22.0
 
-# Vision
-# Image Processing
+# 🖼️ Image Processing
 pillow==11.2.1
 opencv-python==4.11.0.86
 matplotlib==3.8.4
 numpy==1.26.4
 
-#API 
+# ⚙️ API
 fastapi==0.115.12
 uvicorn==0.34.2
 python-multipart==0.0.20
 pydantic==2.7.1
 
-#  HTTP 
+# 🌐 HTTP
 requests==2.32.3
 
-gdown==5.1.0
+# 🤗 Hugging Face Hub
+huggingface_hub==0.23.3
