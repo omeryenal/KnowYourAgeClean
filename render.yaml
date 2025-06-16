@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: knowyourage-api
+    env: python
+    plan: free
+    region: frankfurt
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host=0.0.0.0 --port=$PORT
+
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: HF_HUB_DISABLE_SYMLINKS_WARNING
+        value: "1"

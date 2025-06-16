@@ -1,10 +1,16 @@
+import os
 import torch
+from huggingface_hub import hf_hub_download
 from torchvision import transforms
 from train.train_dex import DEXAgeModel, NUM_BINS
 
+# 📦 Hugging Face repo bilgisi
+REPO_ID = "omeryenal/KnowYourAge"
+FILENAME = "pytorch_model.bin"
+
 def load_model():
     """
-    Loads the pretrained DEXAgeModel and selects the appropriate device (CUDA, MPS, CPU).
+    Loads the pretrained DEXAgeModel from Hugging Face Hub.
 
     Returns:
         model (torch.nn.Module): Loaded PyTorch model
@@ -16,15 +22,14 @@ def load_model():
         else "cpu"
     )
 
-    model = DEXAgeModel(num_bins=NUM_BINS, pretrained_dex=False).to(device)
-    checkpoint_path = os.path.join(os.path.dirname(__file__), "..", "checkpoints", "dex_utkface.pt")
+    # 🔽 Hugging Face üzerinden indir
+    model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
 
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
-
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    # Model yükleniyor
+    model = DEXAgeModel(num_bins=NUM_BINS)
+    model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-    return model, device
+    return model.to(device), device
 
 
 # Preprocessing function for DEX input
