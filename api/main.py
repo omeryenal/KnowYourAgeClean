@@ -56,7 +56,7 @@ def predict_base64(payload: ImagePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 # 🧠 Render requires dynamic port binding
-if __name__ == "__main__":
+#if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))  # Render assigns this automatically
     uvicorn.run("api.main:app", host="0.0.0.0", port=port)
