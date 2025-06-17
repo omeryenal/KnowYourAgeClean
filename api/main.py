@@ -13,6 +13,7 @@ import torch
 # 🔁 Relative imports for utils inside api/
 from .model_utils import load_model, preprocess_image
 from .face_utils import detect_and_crop_face
+print("✅ FastAPI starting")
 
 # 🚀 FastAPI app init
 app = FastAPI()
